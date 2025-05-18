@@ -1,0 +1,1 @@
+Warning (10268): Verilog HDL information at cmd_2fold_multiT_bandhistory_Tstate_hex_veto2.v(207): always construct contains both blocking and non-blocking assignments File: /home/cyc/Verilog/TAROGE3_FPGA/cmd_2fold_multiT_bandhistory_Tstate_hex_veto2.v Line: 207
