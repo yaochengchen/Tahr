@@ -1,0 +1,89 @@
+#include "Riostream.h"
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <ctime>
+#include <stdio.h>
+#include <math.h>
+#include <unistd.h>
+#include <time.h>
+//#include <sys/time.h> 
+#include <stdlib.h> 
+#include <iomanip>
+#include "command.h"
+#include "TGraphErrors.h"
+#include "TCanvas.h"
+#include "TFile.h"
+#include "TH1.h"
+#include "TMultiGraph.h"
+//#include "48bands.h"//drawing a plot
+using namespace std;
+
+
+
+void get_all_band_efficiency_count(double rate[96],double rate_err[96],int Ntimes){
+  ofstream  out("/dev/ttyUSB0");
+  ifstream  in("/dev/ttyUSB0");
+ for(int cha=0;cha<96;cha++){rate[cha]=0;rate_err[cha]=0;}
+
+ for(int time=0;time<Ntimes;time++){//usleep(2000);
+  for(int cha=0;cha<96;cha++){
+  
+int board=cha/8%12 + 1; //board from 1~12, ch from 1~8 
+int ch=cha%8 +1;
+double count;
+
+   rate[cha]+=get_trigger_rate(board,ch)*0.16777216;
+   
+
+
+  }//cha loop
+ }//Ntimes loop
+ for(int cha=0;cha<96;cha++){
+ rate[cha]=rate[cha]/Ntimes;
+ rate_err[cha]=sqrt(rate[cha])/Ntimes; 
+ if(cha==8)cout<<rate[cha]<<endl;
+ 							}
+  out.close();in.close(); 
+}
+
+
+
+
+
+int main(int argv,char* argc[]){// Vi, Vf, Nsteps, Ntimes
+
+  ofstream file("threshold_scan.dat");
+double threshold[4096];
+double rate_base[96][4096],rate_err_base[96][4096];
+double rate[96]={0},rate_err[96]={0};
+double Vi=atof(argc[1]),Vf=atof(argc[2]);
+double Nsteps=atof(argc[3]);
+int Ntimes=atoi(argc[4]);
+cout<<"Ntimes: "<<Ntimes<<endl;
+
+for(int step=0;step<Nsteps+1;step++){
+   double voltage=Vi+step*(Vf-Vi)/Nsteps;
+  setALL_threshold(voltage);
+	usleep(2000);
+   setALL_threshold(voltage);
+	usleep(2000);
+  threshold[step]=voltage;
+  
+  get_all_band_efficiency_count(rate, rate_err, Ntimes);usleep(2000);
+  
+
+ file<<voltage<<" ";
+ for(int ch=0;ch<96;ch++){
+  rate_base[ch][step]=rate[ch];
+  rate_err_base[ch][step]=rate_err[ch];
+   file<<rate[ch]<<" "<<rate_err[ch]<<" ";
+                        }
+file<<endl;
+
+
+                                   }//step loop
+ return 0;
+ }//main end                                  
+ 
+

@@ -1,0 +1,22 @@
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <ctime>
+#include <stdio.h>
+#include <math.h>
+#include <unistd.h>
+#include <time.h>
+#include <sys/time.h> 
+#include <stdlib.h> 
+#include <iomanip>
+#include "command.h"
+using namespace std;
+
+int main(int argv,char* argc[]){// ant from 1~4, band from 1~8
+
+int ant=atoi(argc[1]);
+int band=atoi(argc[2]);
+set_coincidence(ant,band);
+
+return 0;
+}

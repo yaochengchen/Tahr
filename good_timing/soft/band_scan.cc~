@@ -1,0 +1,64 @@
+
+#include "Riostream.h"
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <ctime>
+#include <stdio.h>
+#include <math.h>
+#include <unistd.h>
+#include <time.h>
+//#include <sys/time.h> 
+#include <stdlib.h> 
+#include <iomanip>
+#include "command.h"
+#include "TGraphErrors.h"
+#include "TCanvas.h"
+#include "TFile.h"
+#include "TH1.h"
+#include "TMultiGraph.h"
+//#include "48bands.h"//drawing a plot
+using namespace std;
+
+int main(){
+
+cout<<"fuck: "<<get_trigger_rate(2,2)<<endl;
+
+//int argv,char* argc[]
+double voltage[100] = {0};
+
+double rate[100] = {0};
+
+int n = 100;
+
+double Vi=0;
+double Vf=1.2;
+
+double stepsize = (Vf-Vi)/n;
+
+cout<<"fuck"<<endl;
+
+for(int i=0;i<n;i++){
+
+voltage[i] = stepsize * i;
+
+cout<<voltage[i]<<" :  ";
+
+setALL_threshold(voltage[i]);
+	usleep(2000);
+	
+rate[i] = get_trigger_rate(2,2);//board 2, band 1
+    usleep(2000);
+    
+cout<<rate[i]<<endl;
+                     }
+  
+  
+    TCanvas* c =new TCanvas("Vpol","data",1900,1000);
+    c->Draw();                   
+        TGraph * cyc = new TGraph(n,voltage,rate);
+        cyc->Draw();
+   c->Print("threshold_scanHpol.png","png");     
+    
+return 0;
+}

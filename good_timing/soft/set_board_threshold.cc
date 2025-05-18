@@ -1,0 +1,23 @@
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <ctime>
+#include <stdio.h>
+#include <math.h>
+#include <unistd.h>
+#include <time.h>
+#include <sys/time.h> 
+#include <stdlib.h> 
+#include <iomanip>
+#include "command.h"
+using namespace std;
+
+int main(int argv,char* argc[]){
+
+int board = int(atoi(argc[1]));
+double voltage=float(atof(argc[2]));
+set_board_threshold(board,voltage);
+cout<<"done"<<endl;
+
+return 0;
+}

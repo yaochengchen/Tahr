@@ -1,0 +1,103 @@
+
+#include "Riostream.h"
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <ctime>
+#include <stdio.h>
+#include <math.h>
+#include <unistd.h>
+#include <time.h>
+//#include <sys/time.h> 
+#include <stdlib.h> 
+#include <iomanip>
+#include "command.h"
+#include "TGraphErrors.h"
+#include "TCanvas.h"
+#include "TFile.h"
+#include "TH1.h"
+#include "TMultiGraph.h"
+//#include "48bands.h"//drawing a plot
+using namespace std;
+
+
+int main(int argv,char* argc[]){// Vi, Vf, Nsteps, Ntimes, Board, Band
+  TCanvas* c =new TCanvas("Vpol","data",1900,1000);
+  TGraphErrors* gr1;
+  ofstream file("threshold_scan.dat");
+  
+double threshold[1000]={0};
+double band_eff[1000]={0};
+double band_eff_err[1000]={0};
+
+double Vi=atof(argc[1]),Vf=atof(argc[2]);
+int Nsteps=atoi(argc[3]);
+int Ntimes=atoi(argc[4]);
+int board=atoi(argc[5]);
+int band=atoi(argc[6]);
+cout<<"Ntimes: "<<Ntimes<<endl;
+cout<<"Board: "<<board<<"   "<<"Band: "<<band<<endl;
+int cycle=int(10*pow(2,24)*pow(10,-3));
+
+  usleep(2*cycle);
+  setALL_threshold(1.5);//let all bands not to be trigger
+  
+for(int step=0;step<Nsteps+1;step++){
+   double voltage=Vi+step*(Vf-Vi)/Nsteps;
+
+	usleep(2*cycle);
+
+  threshold[step]=voltage;
+  usleep(2*cycle);
+  
+     double tmp_rate = 0;
+ for(int time=0;time<Ntimes;time++){
+ 
+  set_threshold(board,band,voltage);
+  usleep(2*cycle);
+  tmp_rate+=get_trigger_rate(board,band);
+  usleep(2*cycle);
+
+                                   }
+           cout<<tmp_rate/double(Ntimes)<<endl;
+           band_eff[step] = tmp_rate/double(Ntimes)/100000;                        
+  
+ // cout<<band_eff<<endl;
+                                   
+ file<<voltage<<" ";
+
+
+   file<<band_eff[step]<<" "<<band_eff_err[step]<<" ";
+
+file<<endl;
+
+
+                                   }//step loop
+
+c->Draw();
+  char name[20]="";
+  gr1 = new TGraphErrors(Nsteps+1, threshold, band_eff,0,band_eff_err); //plot WaveForm figure to j-th pannels
+  sprintf(name,"Board #%d  pol %d  Band %d", board, board/6, band);//sprintf(name,"GEN141421 ANT%d", j );
+  gr1->SetLineColor(1);
+  gr1->SetTitle(name);		
+  gr1->SetMaximum(1.);
+  gr1->SetMinimum(0);
+
+  //fuck =  Form("fuck %08d fuck",3);
+//  gPad->SetLogy();
+  gr1->Draw("ALP");c->Update();
+  c->Update();
+  
+    char fuck[20]="";
+    sprintf(fuck,"Board #%d  pol %d  Band %d.png", board, band);//sprintf(name,"GEN141421 ANT%d", j );
+    
+  c->Print(fuck,"png");
+// gSystem->ProcessEvents();
+//TImage *img = TImage::Create();
+//img->FromPad(c);
+//img->WriteImage(name);
+//delete img;
+//delete g1;
+//delete c;
+return 0;
+}

@@ -1,0 +1,85 @@
+
+#include "Riostream.h"
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <ctime>
+#include <stdio.h>
+#include <math.h>
+#include <unistd.h>
+#include <time.h>
+//#include <sys/time.h> 
+#include <stdlib.h> 
+#include <iomanip>
+#include "command.h"
+#include "TGraphErrors.h"
+#include "TCanvas.h"
+#include "TFile.h"
+#include "TH1.h"
+#include "TMultiGraph.h"
+//#include "48bands.h"//drawing a plot
+using namespace std;
+
+
+//int main(int argv,char* argc[]){
+void threshold_scan(double vi, double vf, double Nsteps,int times ){
+  TCanvas* c =new TCanvas("WaveForm","data",1600,1200);
+  c->Divide(6,2);
+  TGraphErrors* gr1[12];
+  ofstream file("threshold_scan.dat");
+double threshold[4096];
+double rate1[4096],rate1_err[4096];
+double rate_base[96][4096],rate_err_base[96][4096];
+double rate[96]={0},rate_err[96]={0};
+//double Vi=atof(argc[1]),Vf=atof(argc[2]);
+//double Nsteps=atof(argc[3]);
+//int Ntimes=atoi(argc[4]);
+
+for(int step=0;step<Nsteps;step++){
+   double voltage=Vi+step*(Vf-Vi)/Nsteps;
+  setALL_threshold(voltage);
+  threshold[step]=voltage;cout<<"  threshold[step]: "<<  threshold[step]<<endl;
+  getALL_trigger_rate( rate, rate_err, Ntimes);
+ file<<voltage<<" ";
+ for(int ch=0;ch<96;ch++){
+  rate_base[ch][step]=rate[ch];
+  rate_err_base[ch][step]=rate_err[ch];
+   file<<rate[ch]<<" "<<rate_err[ch]<<" ";
+  }
+file<<endl;
+
+}
+
+//sleep(10);
+
+
+
+c->Draw();
+for(int j=0; j<12; j++){ // read channels data for biniary file , board 1-12 (12 boards);
+  c->cd(12-j);
+ double rate[4096],rate_err[4096];
+ for(int k=0; k<Nsteps; k++){ 
+     rate1[k]=rate_base[int(j*4)][k];
+     rate1_err[k]=rate_err_base[int(j*4)][k];
+  }
+  char name[20]="";
+  gr1[j] = new TGraphErrors(Nsteps, threshold, rate1,0,0); //plot WaveForm figure to j-th pannels
+  sprintf(name,"board #%d  pol %d", (j%6)+1,j/6 );//sprintf(name,"GEN141421 ANT%d", j );
+  gr1[j]->SetLineColor(1);
+  gr1[j]->SetTitle(name);		
+  //gr1[j]->SetMaximum(1000);
+  gr1[j]->SetMinimum(1);
+  gPad->SetLogy();
+  gr1[j]->Draw("ALP");c->Update();
+ for(int ch=1; ch<4; ch++) {
+  for(int k=0; k<Nsteps; k++){ rate1[k]=rate_base[int(j*4+ch)][k];rate1_err[k]=rate_err_base[int(j*4)+ch][k];}
+    gr1[j] = new TGraphErrors(Nsteps, threshold, rate1,0,0); 
+    gr1[j]->SetLineColor(ch+1);
+    gr1[j]->Draw("LP");c->Update();}
+  gPad->SetLogy();
+ c->Update();
+ } 
+  c->Print("threshold_scan.png","png");
+
+return 0;
+}

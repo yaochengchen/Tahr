@@ -1,0 +1,8 @@
+#include <iostream>
+#include "command.h"
+using namespace std;
+int main(int argv,char* argc[]){
+
+set_scaler_width(atoi(argc[1]));
+return 0;
+}

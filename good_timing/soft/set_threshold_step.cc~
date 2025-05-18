@@ -1,0 +1,46 @@
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <ctime>
+#include <stdio.h>
+#include <math.h>
+#include <unistd.h>
+#include <time.h>
+#include <sys/time.h> 
+#include <stdlib.h> 
+#include <iomanip>
+#include "command.h"
+using namespace std;
+
+int main(int argv,char* argc[]){// step [0,1000]
+int step=atoi(argc[1]);
+
+for (int board =1;board<13;board++){
+for (int band=1;band<9;band++){
+
+  char *txtname = Form("/home/cyc/Verilog/TAROGE3_FPGA/soft/V_vs_Sgn/Board%d_Band%d_efficiency_scan.dat", board, band);//
+  
+       FILE *fpin;
+    fpin = fopen(txtname,"r");
+    float a = 0.8;
+    double voltage = 0.8;
+
+    if(!fpin) {cout<<txtname<<" open !ok"<<endl; return 0;}
+ 
+       int p = fscanf(fpin,"%*f %f", &a);
+    for(int i=0;i<1001;i++){
+        voltage=a;
+        p = fscanf(fpin,"%*f %f", &a);
+        if(p!=2) break;
+        if(i>=step) break;
+                          }
+    fclose(fpin);
+
+   set_threshold(board, band, voltage);
+   usleep(2000); 
+
+                              }//band loop
+                                   }//board loop
+      cout<<"done"<<endl;
+return 0;
+}

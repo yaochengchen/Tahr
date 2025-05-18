@@ -1,0 +1,785 @@
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <dirent.h>
+#include <errno.h>
+#include <ctime>
+#include <stdio.h>
+#include <math.h>
+#include <unistd.h>
+#include <time.h>
+#include <vector>
+#include <cstring>
+//#include <sys/time.h> 
+#include <stdlib.h> 
+#include <iomanip>
+#include <stdlib.h> 
+#include "TFile.h"
+#include "TH1.h"
+#include "TMultiGraph.h"
+
+using namespace std;
+char fpga_command[30]="t11100001e";
+char fpga_band_mask[30]="t111000011111e";
+char he_[31] = "h1000000000011111111111111111e";
+
+
+void threshold_command(int board, int ch, int voltage)//board from 1~8, ch from 1~8
+  {
+  he_[0] = 'h';
+  he_[29] = 'e';
+  he_[1] = (board-1)/8 +48;//control which I2C line
+  he_[2] = (board-1)%8/4 +48;//control which I2C line
+  he_[3] = (board-1)%4/2%2 + 48;//A1 threshold[25] in FPGA code  control Which DAC
+  he_[4] = (board-1)%4%2 + 48;//A0 contral Which DAC
+  he_[5] = 48;//c3// DB23 //command
+  he_[6] = 48;//c2
+  he_[7] = 48;//c1
+  he_[8] = 1+48;//c0
+  he_[9] = 48;//A3 //DB19 //control which channel
+  he_[10]= (ch-1)/4%2 + 48;//A2 //control which channel
+  he_[11] = (ch-1)/2%2 + 48;//A1 //control which channel
+  he_[12] = (ch-1)%2 + 48;//A0 //control which channel
+  he_[13] = voltage/32768%2 +48;
+  he_[14] = voltage/16384%2 +48;
+  he_[15] = voltage/8192%2 +48;
+  he_[16] = voltage/4096%2 +48;
+  he_[17] = voltage/2048%2 +48;
+  he_[18] = voltage/1024%2 +48;
+  he_[19] = voltage/512%2 +48;
+  he_[20] = voltage/256%2 +48;
+  he_[21] = voltage/128%2 +48;
+  he_[22] = voltage/64%2 +48;
+  he_[23] = voltage/32%2 +48;
+  he_[24] = voltage/16%2 +48;
+  he_[25] = voltage/8%2 +48;
+  he_[26] = voltage/4%2 +48;
+  he_[27] = voltage/2%2 +48;
+  he_[28] = voltage%2 +48; //threshold[0] in FPGA code
+}
+
+
+
+
+
+void set_threshold(int board, int band, double voltage){
+
+
+int ch = band;
+
+     switch(band){//mapping of band
+     
+     case 1:
+     ch = 5;
+     break;
+
+     case 2:
+     ch = 6;
+     break;
+
+     case 3:
+     ch = 7;
+     break;
+
+     case 4:
+     ch = 8;
+     break;
+
+     case 5:
+     ch = 1;
+     break;
+
+     case 6:
+     ch = 2;
+     break;
+
+     case 7:
+     ch = 3;
+     break;
+
+     case 8:
+     ch = 4;
+     break;
+
+     default:
+     ch = band;
+                }
+
+
+
+
+voltage=voltage/3.3*32768*2;
+
+
+  ofstream  out("/dev/ttyUSB0");
+threshold_command(board, ch, voltage);
+  out<<he_<<endl; 
+  out.close();  
+// cout<<he_<<endl; 
+//  cout<<he_[0]<<"  "<<he_[29]<<"  "<<int(he_[30])<<endl;
+                                                        }
+
+
+
+
+
+
+
+
+
+void setALL_threshold(double voltage){
+
+
+voltage=voltage/3.3*32768*2;
+
+  ofstream  out("/dev/ttyUSB0");
+for(int board=1;board<9;board++){
+for(int ch=1; ch<9; ch++){
+
+threshold_command(board, ch, voltage);
+usleep(2000);
+if(out.good()){
+//  cout<<he_<<endl; 
+//  cout<<he_[0]<<"  "<<he_[29]<<"  "<<int(he_[30])<<endl;
+  out<<endl;
+  out<<he_<<endl;
+              }
+  usleep(2000); 
+              }}
+  out.close();  
+}
+
+
+void set_board_threshold(int board, double voltage){
+
+
+voltage=voltage/3.3*32768*2;
+
+  ofstream  out("/dev/ttyUSB0");
+
+for(int ch=1; ch<9; ch++){
+
+threshold_command(board, ch, voltage);
+usleep(2000);
+if(out.good()){
+//  cout<<he_<<endl; 
+//  cout<<he_[0]<<"  "<<he_[29]<<"  "<<int(he_[30])<<endl;
+  out<<endl;
+  out<<he_<<endl;
+              }
+  usleep(2000); 
+              }
+  out.close();  
+}
+
+
+
+
+
+
+void set_coincidence(int ant, int band)// ant from 1~4, band from 1~8
+{
+  ofstream  out;out.open("/dev/ttyUSB0");
+  ifstream  in;in.open("/dev/ttyUSB0");
+
+ // out<<fpga_command<<endl;
+//cout<<  fpga_command<<endl;
+  fpga_command[0]=111;//set band coincidence
+for(int i=1;i<5;i++)fpga_command[i]=48;
+for(int i=0;i<4;i++){fpga_command[i+5]=int((ant-1)/pow(2,3-i))%2+48;}//
+  out<<fpga_command<<endl;usleep(1000);
+cout<<  fpga_command<<endl;
+  fpga_command[0]=97;//set_antTH
+for(int i=0;i<4;i++)fpga_command[i+5]=int((band-1)/pow(2,3-i))%2+48;
+  out<<fpga_command<<endl;
+cout<<  fpga_command<<endl;
+
+  fpga_command[0]=65;//return_antTH
+while(1){
+  out<<fpga_command<<endl;
+ // cout<<fpga_command<<endl;
+  if(in.good()){ 
+    for(int i=0;i<38;i++){char c;if(in.good())in>>c;}
+     int a=0,b=0;
+    for(int i=38;i<44;i++){
+     char c;if(in.good())in>>c;//cout<<c;
+     a+=pow(2,43-i)*(int(c)-48);}
+    for(int i=44;i<48;i++){
+     char c;if(in.good())in>>c;//cout<<c;
+     b+=pow(2,47-i)*(int(c)-48);}
+  cout<<"antenna coincidence level: "<<a+1<<endl
+      <<"band coincidence level: "<<b+1<<endl;  break;}
+
+}
+  in.close();out.close();  
+} 
+
+
+
+
+double get_trigger_rate(int board, int ch){//board from 1~8, ch from 1~8;        
+
+
+double count = 0;//better to use double
+double rate = 0;
+if(board>8||(ch>8))
+{cout<<"wrong format"<<endl;return 0;}
+  ofstream  out("/dev/ttyUSB0");
+  ifstream  in("/dev/ttyUSB0");
+  
+int pol = (board-1)/4;//0 for V-pol, 1 for H-pol
+
+  
+fpga_command[0] = 82;//'R';
+fpga_command[9] = 'e';
+fpga_command[8] = (ch)%2+48;
+fpga_command[7] = (ch)/2%2+48;
+fpga_command[6] = (ch)/4%2+48;
+fpga_command[5] = (ch)/8%2+48;
+fpga_command[4] = pol+48;
+fpga_command[3] = (board-1)%4%2+48;
+fpga_command[2] = (board-1)%4/2%2+48;
+fpga_command[1] = (board-1)%4/4%2+48;
+
+//cout<<fpga_command<<endl;
+
+while(1){
+  out<<fpga_command<<endl;
+  if(in.good()){count=0;
+  //cout<<"fuck"<<endl;
+    for(int i=0;i<24;i++){
+    char c;
+    if(in.good())in>>c;
+  //  cout<<i<<": "<<c<<endl;
+    count+=(int(c)-48)*pow(2,23-i);
+ // count += (int(c)-48)*pow(10,23-i);
+ //   cout<<c<<"   "<<int(c)<<endl;
+
+                         }
+  break;}
+}
+  out.close();in.close();  
+  rate=count;//rate count, need to /0.16777216 to get the trigger rate;
+return rate;
+}
+
+
+
+
+
+
+
+void getALL_trigger_rate(double rate[64],double rate_err[64],int Ntimes){
+  ofstream  out("/dev/ttyUSB0");
+  ifstream  in("/dev/ttyUSB0");
+ for(int cha=0;cha<64;cha++){rate[cha]=0;rate_err[cha]=0;}
+
+ for(int time=0;time<Ntimes;time++){//usleep(2000);
+  for(int cha=0;cha<64;cha++){
+  
+int board=cha/8%8 + 1; //board from 1~8, ch from 1~8 
+int ch=cha%8 +1;
+double count;
+
+   rate[cha]+=get_trigger_rate(board,ch)/0.16777216;// 0.16777216 is the time, get_trigger_rate only give the count
+   
+
+
+  }//cha loop
+ }//Ntimes loop
+ for(int cha=0;cha<64;cha++){
+ rate[cha]=rate[cha]/Ntimes;
+ rate_err[cha]=sqrt(rate[cha])/Ntimes; 
+ 							}
+  out.close();in.close(); 
+}
+
+
+
+
+
+
+double get_sys_trigger(int indicator){ //0 for system trigger rate; 1 for system trigger efficiency
+double count = 0;//better to use double
+double rate = 0;
+
+  ofstream  out("/dev/ttyUSB0");
+  ifstream  in("/dev/ttyUSB0");
+
+  
+fpga_command[0] = 82;//'R';
+fpga_command[9] = 'e';
+fpga_command[8] = indicator+48;
+fpga_command[7] = 0+48;
+fpga_command[6] = 0+48;
+fpga_command[5] = 0+48;
+fpga_command[4] = 1+48;
+fpga_command[3] = 1+48;
+fpga_command[2] = 1+48;
+fpga_command[1] = 1+48;
+
+
+while(1){
+  out<<fpga_command<<endl;
+  if(in.good()){count=0;
+    for(int i=0;i<24;i++){
+    char c;
+    if(in.good())in>>c;
+    count+=(int(c)-48)*pow(2,23-i);
+
+                         }
+  break;}
+}
+  out.close();in.close();  
+  rate=count/0.16777216;//2^24*10ns
+return rate;
+}
+
+
+//run pol triggerInfo// run:0 for normal,1 for auto+normal; pol:0 for V-pol, 1 for H-pol; triggerInfo: 1-4:band trigger history in different board, 7:all antennas trigger history
+//pol triggerInfo: 00 for hit pattern
+void set_trigger_mode(int mode){ 
+  ofstream  out("/dev/ttyUSB0");
+char run[10]="r0000000e";
+
+if(mode%10>7|mode/100>1|mode%100/10>1){cout<<"invalid"<<endl;} 
+else{
+ if(mode/100==0){run[6]=49;run[7]=48;run[8]=48;}//normal trigger
+ else {run[6]=49;run[7]=48;run[8]=49;}//pps trigger + normal trigger
+ run[1]=0;//not important
+ run[2]=48+mode/10%10;
+ run[3]=48+mode%10/4;
+ run[4]=48+mode%10/2%2;
+ run[5]=48+mode%2;
+ out<<run<<endl;
+ cout<<run<<endl;
+ }out.close();
+}
+
+
+
+void set_scaler_width(int width){//antenna trigger width, default is 5  
+  ofstream  out("/dev/ttyUSB0");
+char run[20]="t00000000e";
+
+if(width>255){cout<<"invalid"<<endl;} 
+else{
+
+ run[1]=48+width/128;
+ run[2]=48+width/64%2;
+ run[3]=48+width/32%2;
+ run[4]=48+width/16%2;
+ run[5]=48+width/8%2;
+ run[6]=48+width/4%2;
+ run[7]=48+width/2%2;
+ run[8]=48+width%2;
+ out<<run<<endl;
+}
+out.close();
+}
+
+
+void set_auto_trigger_rate(float R)    // useless, change repeaterTime
+{
+double period=1./R;
+int clock=int(period/2.e-8);
+  ofstream  out("/dev/ttyUSB0");
+char run[20]="p04<4;3?e";
+if(R>200||R<1){cout<<"invalid"<<endl;} 
+else{
+
+ run[1]=48+clock/16777216%16;
+ run[2]=48+clock/1048576%16;
+ run[3]=48+clock/65536%16;
+ run[4]=48+clock/4096%16;
+ run[5]=48+clock/256%16;
+ run[6]=48+clock/16%16;
+ run[7]=48+clock%16;
+
+ out<<run<<endl;
+}
+out.close();
+}
+
+
+
+void set_band_mask(int board, int mask){//board: 1~8, ch: 1~8
+  ofstream  out("/dev/ttyUSB0");
+
+
+int pol = (board-1)/4;//0 for V-pol, 1 for H-pol
+
+
+
+fpga_band_mask[0] = 99;
+fpga_band_mask[12] = mask%10+48;
+fpga_band_mask[11] = mask/10%10+48;
+fpga_band_mask[10] = mask/100%10+48;
+fpga_band_mask[9] = mask/1000%10+48;
+fpga_band_mask[8] = mask/10000%10+48;
+fpga_band_mask[7] = mask/100000%10+48;
+fpga_band_mask[6] = mask/1000000%10+48;
+fpga_band_mask[5] = mask/10000000%10+48;
+fpga_band_mask[4] = pol+48;
+fpga_band_mask[3] = (board-1)%6%2+48;
+fpga_band_mask[2] = (board-1)%6/2%2+48;
+fpga_band_mask[1] = (board-1)%6/4%2+48;
+  out<<fpga_band_mask<<endl;usleep(5000);
+out.close();
+
+cout<<board<<" "<<pol<<" "<<mask<<endl;
+
+}
+
+
+
+void turn_pol_bands(int pol,bool on_off){//0 for V-pol, 1 for H-pol; 1 for on, 0 for off
+
+//cout<<on_off<<endl;
+
+if(on_off){
+for(int board=pol*4+1; board<(pol+1)*4+1; board++){
+       set_band_mask(board,11111111);
+                               }
+        }
+        
+        
+if(!on_off){
+for(int board=pol*4+1; board<(pol+1)*4+1; board++){
+       set_band_mask(board,00000000);
+                               }
+           }
+        
+}
+
+
+
+
+
+
+
+int getdir(string dir, vector<string> &files)   // cyc haven't change
+{
+  DIR *dp;//創立資料夾指標
+  struct dirent *dirp;
+  if((dp = opendir(dir.c_str())) == NULL)
+    {
+      //cout << "Error(" << errno << ") opening " << dir << endl;
+      return errno;
+    }
+  
+  while((dirp = readdir(dp)) != NULL)//如果dirent指標非空
+    {
+      files.push_back(string(dirp->d_name));//將資料夾和檔案名放入vector
+    }
+  closedir(dp);//關閉資料夾指標
+  return 0;
+}
+
+void  CreateDateFolder(vector<string> &files,char path [40], int date)   // cyc haven't change
+  {
+	bool folder = 0;
+	char char_date[40];
+	sprintf(char_date,"%d", date );
+//	cout<<"data "<<char_date<<endl;
+ 	
+	for(int i=0; i<files.size(); i++)
+		{
+			if(strncmp( files[i].c_str(), char_date, 8)==0)
+			{
+				folder = 1 ;
+			}	
+		}
+
+//	cout<<"folder="<<folder<<endl;
+
+	if (folder ==1)
+	{
+		
+		sprintf(char_date, "mkdir %s%d", path, date );
+		cout<<"The folder existed"<<endl;
+	}
+	else 
+	{
+		sprintf(char_date, "mkdir %s%d", path, date );
+		cout<<char_date<<endl;
+		system(char_date);	
+	}
+
+  }
+  
+  
+  
+int returnDate()   // cyc haven't change
+{
+  //char date[40];
+  int date;
+  struct tm *local;
+  time_t t;
+  t = time(NULL);
+  local = localtime(&t);
+  //printf("Local hour is: %d\n",local->tm_hour);
+  //local = gmtime(&t);
+  //printf("UTC year is: %d\n",(local->tm_year)+1900);
+  //printf("UTC month is: %d\n",(local->tm_mon)+1);
+  //printf("UTC date is: %d\n",local->tm_mday);
+  date = ((local->tm_year)+1900)*10000 + ((local->tm_mon)+1)*100 + local->tm_mday;
+  return date;
+
+}
+
+
+
+double returnMinute()   // cyc haven't change
+{
+  double date;
+  struct tm *local;
+  time_t t;
+  t = time(NULL);
+  local = localtime(&t);
+  //printf("Local hour is: %d\n",local->tm_hour);
+  //local = gmtime(&t);
+  //printf("UTC year is: %d\n",(local->tm_year)+1900);
+  //printf("UTC month is: %d\n",(local->tm_mon)+1);
+  //printf("UTC date is: %d\n",local->tm_mday);
+  date =  
+     local->tm_hour*1.e2 
+    + local->tm_min ;        
+  return date;
+}
+
+
+
+void cb(char a)  // cyc haven't change
+{
+  int k=int(a)-48,t[4];
+  for(int i=0;i<4;i++)
+    {
+      t[i]=k%2;
+      k=k/2;
+    }
+ for(int i=3;i>-1;i--)cout<<t[i];
+}
+
+double readT(ifstream &r_ttyS1,ofstream &w_ttyS1,ifstream &r_ttyS2,ofstream &w_ttyS2) 
+{
+
+
+  int btd=0;
+  int btd_o=0;
+
+ 
+  //string tt;
+  char re[10]="r";
+  char question[2]="?"; //cout<<"question[0]="<<question<<endl;
+  int wrong=0;
+  char band[48];
+  char ccc[88];
+  char cc[88]; 
+  
+  for(int i =0; i<88;i++)
+    { 
+      ccc[i]=0;//cout<<endl;
+    }
+  //outFile<<re<<endl;
+
+  int evt=0;
+  char c;
+  double rate;
+  double ti,tf;
+  int repeat = 0;
+  int j=0;
+
+
+      //cout<<endl;
+      //cout<<"////////////////"<<endl;
+      //c=r_ttyS1.peek();
+      //cout<<"evt = "<<evt<<", initial c = "<<c<<endl;
+
+
+      w_ttyS2<<re<<endl;//unlock FPGA
+      j=0;
+	  int ttt=0;
+      while (1)
+	{
+
+	  j++;//cout<<"sig "<<j<<endl;
+	  c=r_ttyS1.peek();
+     // cout<<"j = "<<j<<", c = "<<c<<endl;
+	  if(c=='1')
+	    {
+	      r_ttyS1.getline(cc,88,'\n'); 
+	      break;
+	    }
+    else{
+	      r_ttyS1.getline(cc,88,'\n');
+	      if(j>0) {return 1;}
+        }
+							
+	}//*/
+     // cout<<endl;
+
+
+ 
+     // cout << "\x1B[2J\x1B[H"; 
+
+      if(r_ttyS2.good())	
+	{
+	 // cout<<"Event:"<<setw(18)<<evt<<endl;
+	  btd=0;
+
+	  r_ttyS2.getline(ccc,88,'\n');
+
+	  r_ttyS2.getline(ccc,88,'\n');
+
+	  for(int i =0; i<6;i++)
+	    { 
+	      ttt+=(int(ccc[i])-48)*pow(16,5-i);
+	    } 
+	 // cout<<endl;
+	 // cout<<" ttt "<<setw(18)<<ttt*3.2e-7<<endl;
+
+
+	}	  
+      else
+	{
+	  cout<<"no ttyS2"<<endl; 
+
+	}
+      //sleep(1);//CHC usleep(10) = 10ms
+	  for(int i =6; i<30;i++)//trigger pattern
+	    { 
+	      //cout<<(int(ccc[i])-48)<<endl;
+	    }
+
+double timeT=ttt*3.2e-7;// 16*20ns,see repeaterR in verilog code
+  return timeT;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void readT(double & duration, int & rate_counter, int &eff_counter) 
+{
+
+
+ time_t start, finish;  
+ 
+  
+ rate_counter = 0;
+ eff_counter = 0;
+ 
+  
+
+ ifstream r_ttyS2("/dev/ttyUSB1");
+ ifstream r_ttyS1("/dev/ttyUSB0");
+ ofstream w_ttyS1("/dev/ttyUSB0");
+ ofstream w_ttyS2("/dev/ttyUSB1");
+
+
+ start=time(NULL); 
+while( 1 ){
+
+double T=readT(r_ttyS1,w_ttyS1,r_ttyS2,w_ttyS2);
+if(T!=1) rate_counter ++;
+if(T<1.2e-06) eff_counter ++;
+
+cout<<T<<endl;
+
+ finish=time(NULL);
+
+if(finish>start+5) break;
+}
+
+
+  r_ttyS1.close();
+  r_ttyS2.close();
+  w_ttyS2.close();
+  w_ttyS1.close();
+
+
+duration = (double)(finish - start);
+//cout<<CLOCKS_PER_SEC<<endl;
+
+
+cout<<duration<<"  "<<rate_counter<<"  "<<eff_counter<<endl;
+
+}
+
+
+void set_threshold_step(int step){
+
+for (int board =1;board<9;board++){
+for (int band=1;band<9;band++){
+
+  char *txtname = Form("/home/cyc/Verilog/TAROGE-4_FPGA/soft/V_vs_Sgn/Board%d_Band%d_efficiency_scan.dat", board, band);//
+  
+       FILE *fpin;
+    fpin = fopen(txtname,"r");
+    float a = 0.8;
+    float b;//not important
+    double voltage = 0.8;
+
+    if(!fpin) {cout<<txtname<<" open !ok"<<endl;}
+ 
+       int p = fscanf(fpin,"%f %f", &b, &a);
+    for(int i=0;i<10001;i++){
+        voltage=a;
+        int p = fscanf(fpin,"%f %f", &b, &a);
+ //       cout<<p<<endl;
+        if(p!=2) break;
+        if(i>=step) break;
+                          }
+    fclose(fpin);
+//      cout<<voltage<<endl;
+   set_threshold(board, band, voltage);
+   usleep(2000); 
+
+                              }//band loop
+                                   }//board loop
+      cout<<"done"<<endl;
+
+}
+
+
+
+int get_start_step()
+{
+      int step[100]={0};
+      double rate[100]={0};
+      
+  for(int i=0; i<100; i++){
+       step[i] = 70*(i+1);
+     set_threshold_step(step[i]);
+  
+  		for(int j=0;j<10;j++){
+            rate[i] += get_sys_trigger(0);
+            				}
+            rate[i]/=10.;
+            			}
+           
+           int k=100;
+           while(1){
+           k--;
+           if(rate[k]>10||i<5) break;
+                   }
+   return rate[k];  			
+}
+  
+  
+  
+  
+  
+

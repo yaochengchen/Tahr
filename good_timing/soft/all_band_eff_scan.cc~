@@ -1,0 +1,230 @@
+
+#include "Riostream.h"
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <ctime>
+#include <stdio.h>
+#include <math.h>
+#include <unistd.h>
+#include <time.h>
+//#include <sys/time.h> 
+#include <stdlib.h> 
+#include <iomanip>
+#include "command.h"
+#include "TGraphErrors.h"
+#include "TCanvas.h"
+#include "TFile.h"
+#include "TH1.h"
+#include "TMultiGraph.h"
+
+//#include "band_eff_scan.cc"
+using namespace std;
+
+//
+void quick_search(double Vi,double Vf,double eff_count_rough[8],float &reference_count,int &init,int &fnl,int board,int band)
+     {
+ 
+
+    char * input_reference_name =  Form("/home/cyc/Verilog/TAROGE3_FPGA/soft/efficiency_count_reference/Board%d_Band%d_efficiency_reference.dat",board,band);
+     FILE *fpin;
+    fpin = fopen(input_reference_name,"r");
+ 
+    if(!fpin) cout<<input_reference_name<<" open !ok"<<endl;
+    int p = fscanf(fpin,"%*f %f", &reference_count);
+    fclose(fpin);
+
+
+
+   int cycle=int(10*pow(2,24)*pow(10,-3));
+   
+   init = 0;
+   fnl= 5;
+   
+   double eff_rough[8]={0};
+   
+   for(int step=0;step<7+1;step++){// 7 steps
+   
+   double voltage=Vi+step*(Vf-Vi)/7;
+  set_threshold(board,band,voltage);
+  usleep(2*cycle);
+  
+
+  eff_count_rough[step] = get_trigger_rate(board,band);
+  usleep(2*cycle);
+   
+  eff_rough[step]= eff_count_rough[step]/reference_count;
+  if(eff_rough[step]>1) eff_rough[step]=1;
+  if(eff_rough[step]>0.9) init = step;
+                                  }
+
+    
+       for(int step=init+1;step<7+1;step++){
+
+  			if(eff_rough[step]<0.5) {fnl = step;break;}
+                                           }                               
+  
+  
+  
+  
+    
+}
+
+
+
+
+
+
+
+
+
+int main(int argv,char* argc[]){// Vi, Vf, Nsteps, Ntimes
+
+
+
+
+  TCanvas* c =new TCanvas("Vpol","data",1900,1000);
+  
+  TGraphErrors* gr1;
+    TGraph* gr2;
+
+  
+
+
+double Vi=atof(argc[1]),Vf=atof(argc[2]);
+int Nsteps=atoi(argc[3]);
+int Ntimes=atoi(argc[4]);
+
+cout<<"Ntimes: "<<Ntimes<<endl;
+
+int cycle=int(10*pow(2,24)*pow(10,-3));
+
+  setALL_threshold(2.0);//let all bands not to be trigger
+
+for (int board =1;board<13;board++){
+for (int band=1;band<9;band++){
+
+double threshold[1000]={0};
+double band_count[1000]={0};
+double band_eff[1000]={0};
+double band_eff_err[1000]={0};
+
+
+
+
+
+ if(band>1) set_threshold(board,band-1,2.0);//let all bands not to be trigger
+ if(board>1&&band==1) set_threshold(board-1,8,2.0);
+    usleep(2*cycle);
+    
+  char txtname[20]="";
+  sprintf(txtname,"./Voltage_3.67/Board%d_Band%d_efficiency_scan.dat", board, band);//
+  ofstream file(txtname);
+  
+cout<<"Board: "<<board<<"   "<<"Band: "<<band<<endl;
+
+double eff_count_rough[8];//quick search function 7 steps
+int init;
+int fnl;
+float reference_count;
+
+quick_search(Vi,Vf,eff_count_rough,reference_count,init,fnl,board,band);
+cout<<init<<"  "<<fnl<<" "<<eff_count_rough[init]<<"  "<<eff_count_rough[fnl]<<" "<<reference_count<<endl;
+
+ for(int i=0;i<init+1;i++){
+    threshold[i] = Vi+i*(Vf-Vi)/7.;//quick search function 7 steps
+    cout<<"fucking: "<<threshold[i]<<endl;
+    band_eff[i] = eff_count_rough[i]/reference_count;
+    if(band_eff[i]>1) band_eff[i]=1;
+    band_eff_err[i] = pow(eff_count_rough[i],0.5)/reference_count;
+     file<<threshold[i]<<"  "<<eff_count_rough[i]<<endl;
+						  }
+
+//-------------------------------------------------detail test------------------------------------------------
+
+double V_ini = Vi+init*(Vf-Vi)/7.;//quick search function 7 steps
+double V_fin = Vi+fnl*(Vf-Vi)/7.;
+
+    
+for(int step=1;step<Nsteps;step++){
+   double voltage=V_ini+step*(V_fin-V_ini)/Nsteps;
+
+
+  threshold[init+step]=voltage;
+  set_threshold(board,band,voltage);
+  usleep(2*cycle);
+  
+     double tmp_rate = 0;
+ for(int time=0;time<Ntimes;time++){
+ 
+  tmp_rate+=get_trigger_rate(board,band);
+  usleep(2*cycle);
+                                   }
+                                   
+           cout<<tmp_rate/double(Ntimes)/0.16777216<<endl;
+           cout<<tmp_rate<<endl;
+           band_count[step] = tmp_rate/double(Ntimes);//efficiency count, need to /0.16777216 to get the rate and then /100000 to get the efficiency;                        
+           
+           band_eff[step+init]= band_count[step]/reference_count;
+ // cout<<band_eff<<endl;
+           if(band_eff[step]>1) band_eff[step]=1;
+                               
+ file<<voltage<<"  "<<band_count[step]<<endl;
+
+
+                                   }//step loop
+
+//-------------------------------------------------------------------------------------------------------------
+
+ for(int i=fnl;i<7+1;i++){//quick search function 7 steps
+    threshold[init+Nsteps+i-fnl] = Vi+i*(Vf-Vi)/7.;
+    band_eff[init+Nsteps+i-fnl] = eff_count_rough[i]/reference_count;
+    if(band_eff[init+Nsteps+i-fnl]>1) band_eff[init+Nsteps+i-fnl]=1;
+    band_eff_err[init+Nsteps+i-fnl] = pow(eff_count_rough[i],0.5)/reference_count;
+     file<<threshold[init+Nsteps+i-fnl]<<"  "<<eff_count_rough[i]<<endl;
+						  }
+
+
+
+for(int i=0;i<7+Nsteps-(fnl-init)+1;i++)
+   {
+   cout<<"fuck! "<<threshold[i]<<"  "<<band_eff[i]<<endl;
+   }
+
+
+
+  gr2 = new TGraph(7+Nsteps-(fnl-init)+1,band_eff,threshold); 
+
+  double sensitive_threshold = gr2->Eval(0.8);
+  cout<<"sensitive threshold: "<<sensitive_threshold<<endl;
+  
+   file<<sensitive_threshold<<endl;
+   file.close();
+   
+    c->Draw();  
+//    gr2->Draw("ALP");   
+
+  char name[20]="";
+  gr1 = new TGraphErrors(7+Nsteps-(fnl-init)+1, threshold, band_eff,0,0); //
+  sprintf(name,"Board #%d  pol %d  Band %d", board, board/6, band);//;
+  gr1->SetLineColor(1);
+  gr1->SetTitle(name);		
+  gr1->SetMaximum(1.);
+  gr1->SetMinimum(0);
+
+
+  gr1->Draw("ALP");
+  c->Update();
+
+    char fuck[20]="";
+    sprintf(fuck,"/home/cyc/Verilog/TAROGE3_FPGA/soft/Voltage_3.67/Board_%d__Band_%d__.png", board, band);//
+
+  c->Print(fuck,"png");
+  
+
+   
+ }//band loop
+ }//board loop
+
+return 0;
+}

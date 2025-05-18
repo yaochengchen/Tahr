@@ -1,0 +1,16 @@
+#include <iostream>
+#include "command.h"
+using namespace std;
+
+int main(int argv,char* argc[]){
+
+int pol = atoi(argc[1]);
+
+bool on_off = atof(argc[2]);
+
+turn_pol_bands(pol,on_off);
+
+cout<<"done"<<endl;
+
+return 0;
+}

@@ -1,0 +1,56 @@
+
+#include "keep_tri_rate.h"
+using namespace std;
+
+int main(int argv,char* argc[]){
+
+//turn_pol_bands(1,0);
+turn_pol_bands(0,1);
+
+//char mask_char[9] = "00100100";
+//int mask = atoi(mask_char);//start with 0, direct put in function as integer will become strange.
+//int board = 1;
+
+//set_band_mask(board,mask);
+
+set_coincidence(6,5);
+
+set_sys_rate();
+return 0;
+}
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+
+
+

@@ -1,0 +1,149 @@
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <dirent.h>
+#include <errno.h>
+#include <ctime>
+#include <stdio.h>
+#include <math.h>
+#include <unistd.h>
+#include <time.h>
+#include <vector>
+#include <cstring>
+//#include <sys/time.h> 
+#include <stdlib.h> 
+#include <iomanip>
+#include "command.h"
+#include "TFile.h"
+using namespace std;
+
+void set_band_rate(double rate, double threshold[12][8])
+     {
+
+      double rate_low = rate/1.5;
+      double rate_high = rate*1.5;
+      
+  for(int board=1;board<7;board++){
+  for(int band=1; band<9; band++){
+      
+      if((threshold[board][band]<0.2)||(threshold[board][band]>2.0)) return;
+      
+      while(1) {//while loop
+      double current_rate = get_trigger_rate(board,band);
+      usleep(200000);
+
+      if(current_rate>rate_low&&current_rate<rate_high) break;
+      
+      else if(current_rate<rate_low) 
+        {
+        
+        threshold[board][band] -= 0.005;
+        if(threshold[board][band]<0.2) break;
+        set_threshold(board, band, threshold[board][band]);
+        usleep(2000);
+        }
+        
+      else if(current_rate>rate_high) 
+        {
+        
+        threshold[board][band] += 0.005;
+        if(threshold[board][band]>2.0) break;
+        set_threshold(board, band, threshold[board][band]);
+        usleep(2000);
+        }
+              }//while loop
+                                  }//band loop
+                                    }//board loop
+      }// end
+      
+      
+      
+void set_sys_rate()
+     {
+      double sys_rate = 10.;//10 Hz
+      double sys_rate_low = 0.4*sys_rate;
+      double sys_rate_high = 1.9*sys_rate;
+      
+      double band_rate = 1.0e06;//band trigger rate
+      double threshold[12][8]={0};
+      
+       for(int board=1;board<13;board++){
+       for(int band=1; band<9; band++){
+       threshold[board][band] = 1.5; } }//initialization
+       
+       setALL_threshold(1.5);
+      set_band_rate(band_rate, threshold);
+      
+ 
+       
+      while(1){
+      
+      double current_sys_rate;
+      
+      for(int i=0; i<100;i++){
+       current_sys_rate += get_sys_trigger(0);
+      usleep(200000);
+                              }
+      current_sys_rate/=100.;  
+      
+
+       cout<<get_trigger_rate(1,5)<<endl;
+       cout<<"threshold: "<<threshold[1][5]<<endl;
+       cout<<"band rate: "<<band_rate<<endl;//band_rate<<endl; 
+                                  
+        cout<<"current sys rate: "<<current_sys_rate<<endl;
+        cout<<endl;
+
+
+                                
+      if(current_sys_rate<sys_rate_low){
+         band_rate*=1.5;
+         set_band_rate(band_rate, threshold);
+                                       }
+      
+      else if(current_sys_rate>sys_rate_high){
+         band_rate/=1.5;
+         set_band_rate(band_rate, threshold);
+                                        }
+                                        
+               }//while loop
+               
+     }//end
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+
+
+

@@ -1,0 +1,98 @@
+
+#include "Riostream.h"
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <ctime>
+#include <stdio.h>
+#include <math.h>
+#include <unistd.h>
+#include <time.h>
+//#include <sys/time.h> 
+#include <stdlib.h> 
+#include <iomanip>
+#include "command.h"
+#include "TGraphErrors.h"
+#include "TCanvas.h"
+#include "TFile.h"
+#include "TH1.h"
+#include "TMultiGraph.h"
+//#include "48bands.h"//drawing a plot
+using namespace std;
+
+
+int main(int argv,char* argc[]){// Vi, Vf, Nsteps, Ntimes
+  TCanvas* c =new TCanvas("Vpol","data",1900,1000);
+  c->Divide(3,3);
+
+  TGraphErrors* gr1[8];
+  ofstream file("threshold_scan.dat");
+double threshold[4096];
+double rate1[4096],rate1_err[4096];
+double rate_base[96][4096],rate_err_base[96][4096];
+double rate[96]={0},rate_err[96]={0};
+double Vi=atof(argc[1]),Vf=atof(argc[2]);
+double Nsteps=atof(argc[3]);
+int Ntimes=atoi(argc[4]);
+cout<<"Ntimes: "<<Ntimes<<endl;
+int cycle=int(10*pow(2,24)*pow(10,-3));
+for(int step=0;step<Nsteps+1;step++){
+   double voltage=Vi+step*(Vf-Vi)/Nsteps;
+  setALL_threshold(voltage);
+//	usleep(8*2*cycle);
+   setALL_threshold(voltage);
+   setALL_threshold(voltage);
+//	usleep(8*2*cycle);
+  threshold[step]=voltage;
+  //cout<<"  threshold[step]: "<<  threshold[step]<<endl;
+  getALL_trigger_rate(rate, rate_err, Ntimes);usleep(8*2*cycle);
+  cout<<rate[8]<<endl;
+ file<<voltage<<" ";
+ for(int ch=0;ch<96;ch++){
+  rate_base[ch][step]=rate[ch];
+  rate_err_base[ch][step]=rate_err[ch];
+   file<<rate[ch]<<" "<<rate_err[ch]<<" ";
+                        }
+file<<endl;
+
+            cout<<"  threshold[step]: "<<  threshold[step]<<"  rate:  "<<rate_base[0][step]<<"  rate:  "<<rate_base[8][step]<<"  rate:  "<<rate_base[16][step]<<endl;
+//cout<<"fuck: "<<get_trigger_rate(2,1)<<endl;
+
+                                   }//step loop
+
+//sleep(10);
+
+
+
+c->Draw();
+
+
+for(int i=0; i<8; i++){//band
+
+  c->cd(i+1);
+  char name[20]="";
+  sprintf(name,"band #%d",i+1);
+
+ for(int j=0; j<12; j++){ // read board data for biniary file , board 1-12 (12 boards);
+  
+ double rate[4096],rate_err[4096];
+ for(int k=0; k<Nsteps; k++){ 
+     rate1[k]=rate_base[int(j*8+i)][k];
+     rate1_err[k]=rate_err_base[int(j*8)][k];
+  }
+
+
+  gr1[i] = new TGraphErrors(Nsteps, threshold, rate1,0,rate1_err);
+  gr1[i]->SetLineColor(1+j);
+    if(i+j==10) gr1[i]->SetLineColor(13);//avoid white line
+  gr1[i]->SetTitle(name);		
+  gr1[i]->SetMinimum(1);
+  gPad->SetLogy();
+  if(j==0){gr1[i]->Draw("ALP");c->Update();}
+  else gr1[i]->Draw("same");	
+                      }//j
+                      
+                    }//i 
+  c->Print("threshold_scan_band.png","png");
+return 0;
+}

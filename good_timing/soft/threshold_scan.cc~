@@ -1,0 +1,106 @@
+
+#include "Riostream.h"
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <ctime>
+#include <stdio.h>
+#include <math.h>
+#include <unistd.h>
+#include <time.h>
+//#include <sys/time.h> 
+#include <stdlib.h> 
+#include <iomanip>
+#include "command.h"
+#include "TGraphErrors.h"
+#include "TCanvas.h"
+#include "TFile.h"
+#include "TH1.h"
+#include "TMultiGraph.h"
+//#include "48bands.h"//drawing a plot
+using namespace std;
+
+
+int main(int argv,char* argc[]){// Vi, Vf, Nsteps, Ntimes
+  TCanvas* c =new TCanvas("Vpol","data",1900,1000);
+  c->Divide(3,2);
+  TCanvas* c2 =new TCanvas("Hopl","data",1900,1000);
+  c2->Divide(3,2);
+  TGraphErrors* gr1[12];
+  ofstream file("threshold_scan.dat");
+double threshold[4096];
+double rate1[4096],rate1_err[4096];
+double rate_base[96][4096],rate_err_base[96][4096];
+double rate[96]={0},rate_err[96]={0};
+double Vi=atof(argc[1]),Vf=atof(argc[2]);
+double Nsteps=atof(argc[3]);
+int Ntimes=atoi(argc[4]);
+cout<<"Ntimes: "<<Ntimes<<endl;
+int cycle=int(10*pow(2,24)*pow(10,-3));
+for(int step=0;step<Nsteps+1;step++){
+   double voltage=Vi+step*(Vf-Vi)/Nsteps;
+  setALL_threshold(voltage);
+	usleep(2*cycle);
+//   setALL_threshold(voltage);
+//	usleep(8*2*cycle);
+  threshold[step]=voltage;
+  //cout<<"  threshold[step]: "<<  threshold[step]<<endl;
+  getALL_trigger_rate(rate, rate_err, Ntimes);usleep(2*cycle);
+  cout<<rate[8]<<endl;
+ file<<voltage<<" ";
+ for(int ch=0;ch<96;ch++){
+  rate_base[ch][step]=rate[ch];
+  rate_err_base[ch][step]=rate_err[ch];
+   file<<rate[ch]<<" "<<rate_err[ch]<<" ";
+                        }
+file<<endl;
+
+            cout<<"  threshold[step]: "<<  threshold[step]<<"  rate:  "<<rate_base[67][step]<<"  rate:  "<<rate_base[75][step]<<"  rate:  "<<rate_base[83][step]<<endl;
+//cout<<"fuck: "<<get_trigger_rate(2,1)<<endl;
+
+                                   }//step loop
+
+//sleep(10);
+
+
+
+c->Draw();
+c2->Draw();
+
+for(int j=0; j<12; j++){ // read board data for biniary file , board 1-12 (12 boards);
+  
+ double rate[4096],rate_err[4096];
+ for(int k=0; k<Nsteps; k++){ 
+     rate1[k]=rate_base[int(j*8)][k];// /1000. get efficiency
+     rate1_err[k]=rate_err_base[int(j*8)][k];
+ //    if(j==0) cout<<rate1[k]<<endl;
+  }
+//if(j==0||j==2||j==3||j==5){
+	//if(j==0)c->cd(1);if(j==2)c->cd(2);if(j==3)c->cd(3);if(j==5)c->cd(4);
+if(j>5)c2->cd(j-5);
+else c->cd(j+1);
+  char name[20]="";
+  gr1[j] = new TGraphErrors(Nsteps, threshold, rate1,0,rate1_err); //plot WaveForm figure to j-th pannels
+  sprintf(name,"board #%d  pol %d", j+1, j/6 );//sprintf(name,"GEN141421 ANT%d", j );
+  gr1[j]->SetLineColor(1);
+  gr1[j]->SetTitle(name);		
+  gr1[j]->SetMaximum(1.);
+  gr1[j]->SetMinimum(0);
+//  gPad->SetLogy();
+  gr1[j]->Draw("ALP");c->Update();
+ for(int ch=1; ch<8; ch++) {
+  for(int k=0; k<Nsteps; k++){ rate1[k]=rate_base[int(j*8+ch)][k];rate1_err[k]=rate_err_base[int(j*8)+ch][k];}
+    gr1[j] = new TGraphErrors(Nsteps, threshold, rate1,0,rate1_err); 
+    gr1[j]->SetLineColor(ch+1);
+  gr1[j]->SetMaximum(1.);
+  gr1[j]->SetMinimum(0);
+//gr1[j]->SetMarkerStyle(2);
+    gr1[j]->Draw("LP");c->Update();}
+//  gPad->SetLogy();
+ c->Update();
+	//}
+ } 
+  c->Print("threshold_scanVpol.png","png");
+  c2->Print("threshold_scanHpol.png","png");
+return 0;
+}

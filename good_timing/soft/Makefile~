@@ -1,0 +1,68 @@
+CXX = g++
+CMD1 = set_threshold.cc -o set_threshold -lm `root-config --cflags` `root-config --libs`
+CMD2 = setALL_threshold.cc -o setALL_threshold -lm `root-config --cflags` `root-config --libs`
+CMD3 = get_trigger_rate.cc -o get_trigger_rate -lm `root-config --cflags` `root-config --libs`
+CMD4 = set_coincidence.cc -o set_coincidence -lm `root-config --cflags` `root-config --libs`
+
+CMD6 = set_trigger_mode.cc -o set_trigger_mode -lm `root-config --cflags` `root-config --libs`
+CMD7 = set_band_mask.cc -o set_band_mask -lm `root-config --cflags` `root-config --libs`
+CMD8 = turn_pol_bands.cc -o turn_pol_bands -lm `root-config --cflags` `root-config --libs`
+CMD9 = default.cc -o default -lm `root-config --cflags` `root-config --libs`
+CMD10= readtty42hex.cc -o read_trigger -lm `root-config --cflags` `root-config --libs`
+CMD11= sys_scan.cc -o sys_scan -lm `root-config --cflags` `root-config --libs`
+
+CMD12= set_scaler_width.cc -o set_scaler_width -lm `root-config --cflags` `root-config --libs`
+CMD13= set_trigger_mode.cc -o set_trigger_mode -lm `root-config --cflags` `root-config --libs`
+CMD14= set_auto_trigger_rate.cc -o set_auto_trigger_rate -lm `root-config --cflags` `root-config --libs`
+CMD15= set_pps_delay.cc -o set_pps_delay -lm `root-config --cflags` `root-config --libs`
+CMD16= RBth.cc -o set_global_trigger_rate -lm `root-config --cflags` `root-config --libs`
+CMD17= sys_rate_scan.cc -o sys_rate_scan -lm `root-config --cflags` `root-config --libs`
+
+CMD18= get_mask.cc -o get_mask -lm `root-config --cflags` `root-config --libs`
+
+
+
+CMD20 = get_sys_trigger.cc -o get_sys_trigger -lm `root-config --cflags` `root-config --libs`
+
+
+
+CMD22= readT.cc -o readT -lm `root-config --cflags` `root-config --libs`
+
+CMD23 = set_board_threshold.cc -o set_board_threshold -lm `root-config --cflags` `root-config --libs`
+
+
+
+CMD27 = set_threshold_step.cc -o set_threshold_step  -lm `root-config --cflags` `root-config --libs`
+CMD28 = sys_tri_rate_scan.cc -o sys_tri_rate_scan  -lm `root-config --cflags` `root-config --libs`
+
+CMD29 = get_start_step.cc -o get_start_step -lm `root-config --cflags` `root-config --libs`
+
+target:
+#	$(CXX) $(CMD18)
+	$(CXX) $(CMD1) 
+	$(CXX) $(CMD2) 
+	$(CXX) $(CMD3) 
+	$(CXX) $(CMD4) 
+ 
+	$(CXX) $(CMD6) 
+	$(CXX) $(CMD7) 
+	$(CXX) $(CMD8) 
+#	$(CXX) $(CMD9)
+#	$(CXX) $(CMD10)  
+#	$(CXX) $(CMD11)
+	$(CXX) $(CMD12)  
+#	$(CXX) $(CMD13)
+#	$(CXX) $(CMD14)  
+#	$(CXX) $(CMD15)
+#	$(CXX) $(CMD16)  
+#	$(CXX) $(CMD17)
+
+
+	$(CXX) $(CMD20)
+
+	$(CXX) $(CMD22)
+	$(CXX) $(CMD23)
+
+	$(CXX) $(CMD27)
+	$(CXX) $(CMD28)
+
